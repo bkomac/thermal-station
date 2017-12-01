@@ -1,9 +1,12 @@
 #include <DallasTemperature.h>
+#include <Espiot.h>
 #include <OneWire.h>
 
 // Data wire is plugged into pin 2 on the Arduino
 #define ONE_WIRE_BUS 13
 #define TEMPERATURE_PRECISION 12 // 8 9 10 12
+
+Espiot espiot;
 
 int devicesFound = 0;
 DeviceAddress devices[10];
@@ -20,6 +23,8 @@ void setup(void) {
   Serial.begin(9600);
   Serial.println("Dallas Temperature IC Control Library Demo");
 
+  espiot.init();
+
   // Start up the library
   sensors.begin();
 
@@ -27,6 +32,7 @@ void setup(void) {
 }
 
 void loop(void) {
+  espiot.loop();
   delay(1000);
   // call sensors.requestTemperatures() to issue a global temperature
   // request to all devices on the bus
