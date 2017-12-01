@@ -7,6 +7,7 @@
 #define TEMPERATURE_PRECISION 12 // 8 9 10 12
 
 Espiot espiot;
+PubSubClient mq;
 
 int devicesFound = 0;
 DeviceAddress devices[10];
@@ -24,6 +25,7 @@ void setup(void) {
   Serial.println("Dallas Temperature IC Control Library Demo");
 
   espiot.init();
+  mq = espiot.getMqClient();
 
   // Start up the library
   sensors.begin();
@@ -40,15 +42,28 @@ void loop(void) {
   sensors.requestTemperatures(); // Send the command to get temperatures
   Serial.println("DONE");
   delay(200);
+  espiot.blink();
+  DynamicJsonBuffer jsonBuffer;
+  JsonObject &root = jsonBuffer.createObject();
+  root["deviceId"] = espiot.getDeviceId();
+
+  JsonArray &devicesArray = root.createNestedArray("devices");
   for (int i = 0; i < devicesFound; i++) {
     Serial.print("\nDevice " + (String)i + " Address: ");
-    printAddress(devices[i]);
+    String address1 = printAddress(devices[i]);
     Serial.println(" Temp:" + (String)printTemperature(devices[i]));
+
+    float tempC = sensors.getTempC(devices[i]);
+    JsonObject &device = devicesArray.createNestedObject();
+    device["address"] = address1;
+    device["temp"] = tempC;
   }
 
-  // Why "byIndex"?
-  // You can have more than one IC on the same bus.
-  // 0 refers to the first IC on the wire
+  root.printTo(Serial);
+  char buffer[255];
+  root.printTo(buffer, sizeof(buffer));
+
+  espiot.mqPublish(buffer);
 }
 
 void getDeviceAddress(void) {
@@ -75,13 +90,16 @@ void getDeviceAddress(void) {
   return;
 }
 
-void printAddress(DeviceAddress deviceAddress) {
+String printAddress(DeviceAddress deviceAddress) {
+  String out = "";
   for (uint8_t i = 0; i < 8; i++) {
     // zero pad the address if necessary
     if (deviceAddress[i] < 16)
       Serial.print("0");
     Serial.print(deviceAddress[i], HEX);
+    out += (String)deviceAddress[i];
   }
+  return out;
 }
 
 String printTemperature(DeviceAddress deviceAddress) {
