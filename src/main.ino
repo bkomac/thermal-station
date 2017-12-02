@@ -5,6 +5,9 @@
 #define ONE_WIRE_BUS 13
 #define TEMPERATURE_PRECISION 12 // 8 9 10 12
 
+// Vcc measurement
+ADC_MODE(ADC_VCC);
+
 Espiot espiot;
 String appV = "1.0.1";
 int devicesFound = 0;
@@ -18,9 +21,11 @@ int lastTime = millis();
 void setup(void) {
 
   Serial.begin(9600);
-  Serial.println("Dallas Temperature IC Control Library Demo");
+  Serial.println("Thermal Station " + appV);
 
   espiot.init(appV);
+  espiot.enableVccMeasure();
+  espiot.SENSOR = "DS18B20";
 
   sensors.begin();
   sensors.requestTemperatures();
@@ -39,6 +44,7 @@ void loop(void) {
     DynamicJsonBuffer jsonBuffer;
     JsonObject &root = jsonBuffer.createObject();
     root["deviceId"] = espiot.getDeviceId();
+    root["sensorType"] = espiot.SENSOR;
 
     JsonArray &devicesArray = root.createNestedArray("sesnsors");
     for (int i = 0; i < devicesFound; i++) {
