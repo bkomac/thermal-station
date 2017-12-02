@@ -26,6 +26,7 @@ void setup(void) {
   espiot.init(appV);
   espiot.enableVccMeasure();
   espiot.SENSOR = "DS18B20";
+  espiot.deviceName = "ThermalStation v.2";
 
   sensors.begin();
   sensors.requestTemperatures();
@@ -33,6 +34,7 @@ void setup(void) {
 }
 
 void loop(void) {
+  delay(100);
   espiot.loop();
 
   if (millis() > lastTime + espiot.timeOut && devicesFound > 0) {
