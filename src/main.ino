@@ -29,27 +29,29 @@ void setup(void) {
 
 void loop(void) {
   espiot.loop();
-  delay(1000);
-  if (millis() > lastTime + espiot.timeOut) {
+
+  if (millis() > lastTime + espiot.timeOut && devicesFound > 0) {
     Serial.println("\nRequesting temperatures...");
-    sensors.requestTemperatures(); // Send the command to get temperatures
+    getDeviceAddress();
+    sensors.requestTemperatures();
     Serial.println("DONE");
-    delay(200);
-    espiot.blink();
+
     DynamicJsonBuffer jsonBuffer;
     JsonObject &root = jsonBuffer.createObject();
     root["deviceId"] = espiot.getDeviceId();
 
-    JsonArray &devicesArray = root.createNestedArray("devices");
+    JsonArray &devicesArray = root.createNestedArray("sesnsors");
     for (int i = 0; i < devicesFound; i++) {
       Serial.print("\nDevice " + (String)i + " Address: ");
       String address1 = printAddress(devices[i]);
       Serial.println(" Temp:" + (String)printTemperature(devices[i]));
 
       float tempC = sensors.getTempC(devices[i]);
-      JsonObject &device = devicesArray.createNestedObject();
-      device["address"] = address1;
-      device["temp"] = tempC;
+      if (tempC > -127.00) {
+        JsonObject &device = devicesArray.createNestedObject();
+        device["address"] = address1;
+        device["temp"] = tempC;
+      }
     }
 
     String payload;
@@ -57,6 +59,7 @@ void loop(void) {
 
     espiot.mqPublish(payload);
     lastTime = millis();
+    espiot.blink(1, 300);
   }
 }
 
