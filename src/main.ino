@@ -59,11 +59,10 @@ void loop(void) {
     device["temp"] = tempC;
   }
 
-  root.printTo(Serial);
-  char buffer[255];
-  root.printTo(buffer, sizeof(buffer));
+  String payload;
+  root.printTo(payload);
 
-  espiot.mqPublish(buffer);
+  espiot.mqPublish(payload);
 }
 
 void getDeviceAddress(void) {
