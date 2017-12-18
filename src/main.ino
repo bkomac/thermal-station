@@ -9,7 +9,7 @@
 ADC_MODE(ADC_VCC);
 
 Espiot espiot;
-String appV = "1.0.1";
+String appV = "1.0.2";
 int devicesFound = 0;
 DeviceAddress devices[10];
 
@@ -26,7 +26,6 @@ void setup(void) {
   espiot.init(appV);
   espiot.enableVccMeasure();
   espiot.SENSOR = "DS18B20";
-  espiot.deviceName = "ThermalStation v.2";
 
   sensors.begin();
   sensors.requestTemperatures();
@@ -48,7 +47,7 @@ void loop(void) {
     root["deviceId"] = espiot.getDeviceId();
     root["sensorType"] = espiot.SENSOR;
 
-    JsonArray &devicesArray = root.createNestedArray("sesnsors");
+    JsonArray &devicesArray = root.createNestedArray("sensors");
     for (int i = 0; i < devicesFound; i++) {
       Serial.print("\nDevice " + (String)i + " Address: ");
       String address1 = printAddress(devices[i]);
