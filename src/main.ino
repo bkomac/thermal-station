@@ -1,48 +1,73 @@
 #include <DallasTemperature.h>
+#include <Espiot.h>
 #include <OneWire.h>
 
-// Data wire is plugged into pin 2 on the Arduino
 #define ONE_WIRE_BUS 13
 #define TEMPERATURE_PRECISION 12 // 8 9 10 12
 
+// Vcc measurement
+ADC_MODE(ADC_VCC);
+
+Espiot espiot;
+String appV = "1.0.2";
 int devicesFound = 0;
 DeviceAddress devices[10];
 
-// Setup a oneWire instance to communicate with any OneWire devices
-// (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
-
-// Pass our oneWire reference to Dallas Temperature.
 DallasTemperature sensors(&oneWire);
 
+int lastTime = millis();
+
 void setup(void) {
-  // start serial port
+
   Serial.begin(9600);
-  Serial.println("Dallas Temperature IC Control Library Demo");
+  Serial.println("Thermal Station " + appV);
 
-  // Start up the library
+  espiot.init(appV);
+  espiot.enableVccMeasure();
+  espiot.SENSOR = "DS18B20";
+
   sensors.begin();
-
+  sensors.requestTemperatures();
   getDeviceAddress();
 }
 
 void loop(void) {
-  delay(1000);
-  // call sensors.requestTemperatures() to issue a global temperature
-  // request to all devices on the bus
-  Serial.println("\nRequesting temperatures...");
-  sensors.requestTemperatures(); // Send the command to get temperatures
-  Serial.println("DONE");
-  delay(200);
-  for (int i = 0; i < devicesFound; i++) {
-    Serial.print("\nDevice " + (String)i + " Address: ");
-    printAddress(devices[i]);
-    Serial.println(" Temp:" + (String)printTemperature(devices[i]));
-  }
+  delay(100);
+  espiot.loop();
 
-  // Why "byIndex"?
-  // You can have more than one IC on the same bus.
-  // 0 refers to the first IC on the wire
+  if (millis() > lastTime + espiot.timeOut && devicesFound > 0) {
+    Serial.println("\nRequesting temperatures...");
+    getDeviceAddress();
+    sensors.requestTemperatures();
+    Serial.println("DONE");
+
+    DynamicJsonBuffer jsonBuffer;
+    JsonObject &root = jsonBuffer.createObject();
+    root["deviceId"] = espiot.getDeviceId();
+    root["sensorType"] = espiot.SENSOR;
+
+    JsonArray &devicesArray = root.createNestedArray("sensors");
+    for (int i = 0; i < devicesFound; i++) {
+      Serial.print("\nDevice " + (String)i + " Address: ");
+      String address1 = printAddress(devices[i]);
+      Serial.println(" Temp:" + (String)printTemperature(devices[i]));
+
+      float tempC = sensors.getTempC(devices[i]);
+      if (tempC > -127.00) {
+        JsonObject &device = devicesArray.createNestedObject();
+        device["address"] = address1;
+        device["temp"] = tempC;
+      }
+    }
+
+    String payload;
+    root.printTo(payload);
+
+    espiot.mqPublish(payload);
+    lastTime = millis();
+    espiot.blink(1, 300);
+  }
 }
 
 void getDeviceAddress(void) {
@@ -69,13 +94,16 @@ void getDeviceAddress(void) {
   return;
 }
 
-void printAddress(DeviceAddress deviceAddress) {
+String printAddress(DeviceAddress deviceAddress) {
+  String out = "";
   for (uint8_t i = 0; i < 8; i++) {
     // zero pad the address if necessary
     if (deviceAddress[i] < 16)
       Serial.print("0");
     Serial.print(deviceAddress[i], HEX);
+    out += (String)deviceAddress[i];
   }
+  return out;
 }
 
 String printTemperature(DeviceAddress deviceAddress) {
