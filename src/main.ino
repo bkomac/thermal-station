@@ -13,7 +13,7 @@
 ADC_MODE(ADC_VCC);
 
 Espiot espiot;
-String appV = "1.0.5";
+String appV = "1.0.6";
 int devicesFound = 0;
 DeviceAddress devices[10];
 
@@ -123,7 +123,7 @@ String printAddress(DeviceAddress deviceAddress) {
     if (deviceAddress[i] < 16)
       Serial.print("0");
     Serial.print(deviceAddress[i], HEX);
-    out += (String)deviceAddress[i];
+    out += String(deviceAddress[i],HEX);
   }
   return out;
 }
